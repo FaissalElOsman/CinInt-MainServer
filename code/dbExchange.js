@@ -144,7 +144,7 @@ function deleteFilm(parameter,res,callback) {
 				tools.util.log('LOG EROR - dbExchange.js : There is an error when performing deleteFilm request for the film '+ film_name);
 				res.status(500).json({"success": false});
 			} else{
-				tools.util.log('LOG INFO - dbExchange.js : '+film_name+'film is removed from the film table');
+				tools.util.log('LOG INFO - dbExchange.js : '+film_name+' film is removed from the film table');
 				callback(parameter);
 			}
 		});
@@ -280,6 +280,21 @@ function getTableRoom(res) {
 				res.status(500).json({"success": false});
 			} else{
 				tools.util.log('LOG INFO - dbExchange.js : getTableRoom request is processed correctly');
+					res.status(200).json({"success": true, "data": result.rows});
+			}
+		});
+	});
+}
+
+function getTableSchedule(res) {
+	pg.connect(connectionString, function(err, client, done) {
+		client.query(`select * from scheduling`, function(err, result) {
+			done();
+			if (err) {
+				tools.util.log('LOG EROR - dbExchange.js : There is an error when processing getTableSchedule request for '+tools.daysOfTheWeek[parameter]);
+				res.status(500).json({"success": false});
+			} else{
+				tools.util.log('LOG INFO - dbExchange.js : getTableSchedule request is processed correctly');
 					res.status(200).json({"success": true, "data": result.rows});
 			}
 		});
@@ -459,6 +474,9 @@ module.exports={
 			break;
 			case tools.requestType.ROOM:
 			getTableRoom(res);
+			break;
+			case tools.requestType.SCHEDULE:
+			getTableSchedule(res);
 			break;
 			case tools.requestType.SCHEDULE + tools.requestType.FILM:
 			getTableScheduleForASpecificDay(parameter,res);

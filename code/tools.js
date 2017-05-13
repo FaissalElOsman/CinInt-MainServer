@@ -1,6 +1,6 @@
 var util  								= require('util');
 var dataBaseLink 						= 'postgres://localhost:5432/CinInt';
-var requestType 						= {FILM:0, ROOM:1, SCHEDULE:2};
+var requestType 						= {FILM:1, ROOM:2, SCHEDULE:3};
 var daysOfTheWeek 						= ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 var minimalDelayBetweenFilms		 	= { "hour"		: 0	, "minute"	: 15};
 

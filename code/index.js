@@ -203,6 +203,13 @@ app.get('/getRooms', function (req, res) {
 });
 
 /*Completed*/
+app.get('/getScheduling', function (req, res) {
+	tools.util.log('LOG INFO - index.js : Receiving getTheScheduling request');
+
+  	dbExchange.getTable(tools.requestType.SCHEDULE,0,res);
+});
+
+/*Completed*/
 app.get('/getTheSchedulingForASpecificDay', function (req, res) {
 	var query            	= require('url').parse(req.url,true).query;
 	var day_week		 	= query.day;

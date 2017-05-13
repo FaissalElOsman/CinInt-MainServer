@@ -166,6 +166,35 @@ class TestStringMethods(unittest.TestCase):
 
     def test_remove_film_normal(self):
         sucess=1
+        film_name = "LA LA LAND"
+        res=unirest.get(SERVER_URL+'getFilms', headers={"Accept": "application/json"},params={})
+        tmp_res = json.loads(res.raw_body)
+        id = -1;
+        for film in tmp_res['data']:
+            if (film['name']==film_name):
+                id=film['id']
+
+        if(id==-1):
+            sucess=sucess&False
+        
+        res=unirest.get(SERVER_URL+'removeFilm', headers={}, params={"name": film_name})
+
+        res=unirest.get(SERVER_URL+'getFilms', headers={"Accept": "application/json"},params={})
+        tmp_res = json.loads(res.raw_body)
+        for film in tmp_res['data']:
+            if (film['name']==film_name):
+                sucess=sucess&False
+            else:
+                sucess=sucess&True
+
+        res=unirest.get(SERVER_URL+'getScheduling', headers={"Accept": "application/json"},params={})
+        tmp_res = json.loads(res.raw_body)
+        for schedule in tmp_res['data']:
+            if (schedule['id_film']==id):
+                sucess=sucess&False
+            else:
+                sucess=sucess&True
+
         self.assertEqual(sucess, 1)
 
     def test_remove_film_does_not_exist(self):
@@ -207,21 +236,21 @@ class TestStringMethods(unittest.TestCase):
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
-    suite.addTest(TestStringMethods('test_add_film_normal'))
-    suite.addTest(TestStringMethods('test_add_film_already_added'))
-    suite.addTest(TestStringMethods('test_add_room_normal'))
-    suite.addTest(TestStringMethods('test_add_room_already_added'))
-    suite.addTest(TestStringMethods('test_add_scheduling_normal'))
-    suite.addTest(TestStringMethods('test_add_scheduling_film_not_found'))
-    suite.addTest(TestStringMethods('test_add_scheduling_room_not_found'))
-    suite.addTest(TestStringMethods('test_get_films'))
-    suite.addTest(TestStringMethods('test_get_rooms'))
+    suite.addTest(TestStringMethods('test_add_film_normal')) #Completed
+    suite.addTest(TestStringMethods('test_add_film_already_added')) #Completed
+    suite.addTest(TestStringMethods('test_add_room_normal')) #Completed
+    suite.addTest(TestStringMethods('test_add_room_already_added')) #Completed
+    suite.addTest(TestStringMethods('test_add_scheduling_normal')) #Completed
+    suite.addTest(TestStringMethods('test_add_scheduling_film_not_found')) #Completed
+    suite.addTest(TestStringMethods('test_add_scheduling_room_not_found')) #Completed
+    suite.addTest(TestStringMethods('test_get_films')) #Completed
+    suite.addTest(TestStringMethods('test_get_rooms')) #Completed
     suite.addTest(TestStringMethods('test_get_the_scheduling_for_a_specific_day'))
     suite.addTest(TestStringMethods('test_get_the_scheduling_for_a_specific_room'))
-    suite.addTest(TestStringMethods('test_remove_film_normal'))
+    suite.addTest(TestStringMethods('test_remove_film_normal')) #Completed
     suite.addTest(TestStringMethods('test_remove_film_does_not_exist'))
-    suite.addTest(TestStringMethods('test_remove_room_normal'))
-    suite.addTest(TestStringMethods('test_remove_room_does_not_exist'))
+    suite.addTest(TestStringMethods('test_remove_room_normal')) #Completed
+    suite.addTest(TestStringMethods('test_remove_room_does_not_exist')) #Completed
     suite.addTest(TestStringMethods('test_remove_scheduling'))
-    suite.addTest(TestStringMethods('test_get_qr_code'))
+    suite.addTest(TestStringMethods('test_get_qr_code')) #Completed
     unittest.TextTestRunner(verbosity=2).run(suite)
