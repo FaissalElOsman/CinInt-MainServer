@@ -1,6 +1,8 @@
 import unittest
 import json
 import unirest
+import filecmp
+import os
 from data import data
 
 SERVER_URL="http://127.0.0.1:5100/"
@@ -195,7 +197,13 @@ class TestStringMethods(unittest.TestCase):
 
     def test_get_qr_code(self):
         sucess=1
-        self.assertEqual(sucess, 1)
+        res=unirest.get(SERVER_URL+'getQRCode', headers={}, params={"room_num": 2})
+        tmpFile = open("tmpQRcodeOfRoom2", "wb")
+        tmpFile.write(res.raw_body)
+        tmpFile.close()
+        res = filecmp.cmp("tmpQRcodeOfRoom2", "./files/QRcodeOfRoom2")
+        os.remove("tmpQRcodeOfRoom2")
+        self.assertEqual(res, True)
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
