@@ -169,6 +169,28 @@ function deleteRoom(parameter,res,callback) {
 	});
 }
 
+function deleteSchedule(parameter,res,callback) {
+	var day_week		= parameter.day;
+	var time_hour 		= parameter.hour;
+	var time_minute 	= parameter.minute;
+	var id_film 		= parameter.film_id;
+	var id_room 		= parameter.room_id;
+
+	pg.connect(connectionString, function(err, client, done) {
+		client.query(`delete from scheduling 
+						where (day_week=$1)and(time_hour=$2)and(time_minute=$3)and(id_film=$4)and(id_room=$5)`,[day_week,time_hour,time_minute,id_film,id_room], function(err, result) {
+			done();
+			if (err) {
+				tools.util.log('LOG EROR - dbExchange.js : There is an error when performing deleteSchedule request');
+				res.status(500).json({"success": false});
+			} else{
+				tools.util.log('LOG INFO - dbExchange.js : Requested schedule is removed from the room table');
+				res.status(200).json({"success": true});
+			}
+		});
+	});
+}
+
 function deleteScheduleForASpecificFilm(parameter,res) {
 	var film_id		= parameter.film_id;
 	var film_name	= parameter.film_name;
@@ -192,7 +214,6 @@ function deleteScheduleForASpecificRoom(parameter,res) {
 	var room_num	= parameter.room_num;
 
 	pg.connect(connectionString, function(err, client, done) {
-		console.log('delete from scheduling where id_room= ' + room_id);
 		client.query('delete from scheduling where id_room=$1',[room_id], function(err, result) {
 			done();
 			if (err) {

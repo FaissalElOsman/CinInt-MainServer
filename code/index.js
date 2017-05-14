@@ -26,7 +26,6 @@ tools.util.log('LOG INFO - index.js : Tables (Film, Room, Scheduling) are droped
 dbExchange.addTablesToDB();
 tools.util.log('LOG INFO - index.js : Tables (Film, Room, Scheduling) are added');
 
-/*Completed*/
 app.post('/addFilm', function (req, res) {
 	var form = new formidable.IncomingForm();
 	form.multiples = true;
@@ -62,7 +61,6 @@ app.post('/addFilm', function (req, res) {
 	});	
 });
 
-/*Completed*/
 app.post('/addRoom', function (req, res) {
 	var room_num         	= req.body.room_num;
 	var ip_addr 			= req.body.ip_addr;
@@ -77,7 +75,6 @@ app.post('/addRoom', function (req, res) {
   	});
 });
 
-/*Completed*/
 app.post('/addScheduling', function (req, res) {
 	var	day_week			= req.body.day_week;
 	var time_hour			= req.body.time_hour;
@@ -139,7 +136,6 @@ app.post('/addScheduling', function (req, res) {
   	});
 });
 
-/*Completed*/
 app.get('/removeFilm', function (req, res) {
 	var query            = require('url').parse(req.url,true).query;
 	var film_name		 = query.name;
@@ -160,7 +156,6 @@ app.get('/removeFilm', function (req, res) {
   	});
 });
 
-/*Completed*/
 app.get('/removeRoom', function (req, res) {
 	var query            	= require('url').parse(req.url,true).query;
 	var room_num		 	= query.number;
@@ -182,34 +177,49 @@ app.get('/removeRoom', function (req, res) {
 /*To be continued*/
 app.get('/removeScheduling', function (req, res) {
 	var query           = require('url').parse(req.url,true).query;
-	var film_name		= query.name;
+	var film_name		= query.film_name;
+	var room_num 		= query.room_num
 	var day 			= query.day;
 	var hour 			= query.hour;
-	var mi		
+	var minute 			= query.minute;
+
+	tools.util.log('LOG INFO - index.js : Receiving removeScheduling request for the film '+ film_name+' which will be projected in the room number '+room_num);
+
+	var parameter 			= { 	"film_name"				: film_name				,
+								    "film_id"				: 0						,
+								    "room_num"				: room_num				,
+								    "room_id"				: 0						,
+									"day"					: day 					,
+									"hour"					: hour 					,
+									"minute"				: minute 				};
+
+	dbExchange.getId(tools.requestType.ROOM,parameter,res,function(parameter){
+  		dbExchange.getId(tools.requestType.FILM,parameter,res,function(parameter){
+  			dbExchange.delete(tools.requestType.SCHEDULE , parameter,res,function(parameter){
+  				res.status(200).json({"success": true});
+  			});
+  		});
+  	});	
 });
 
-/*Completed*/
 app.get('/getFilms', function (req, res) {
 	tools.util.log('LOG INFO - index.js : Receiving getFilms request ');
 
   	dbExchange.getTable(tools.requestType.FILM,0,res);
 });
 
-/*Completed*/
 app.get('/getRooms', function (req, res) {
 	tools.util.log('LOG INFO - index.js : Receiving getRooms request ');
 
   	dbExchange.getTable(tools.requestType.ROOM,0,res);
 });
 
-/*Completed*/
 app.get('/getScheduling', function (req, res) {
 	tools.util.log('LOG INFO - index.js : Receiving getTheScheduling request');
 
   	dbExchange.getTable(tools.requestType.SCHEDULE,0,res);
 });
 
-/*Completed*/
 app.get('/getTheSchedulingForASpecificDay', function (req, res) {
 	var query            	= require('url').parse(req.url,true).query;
 	var day_week		 	= query.day;
@@ -219,7 +229,6 @@ app.get('/getTheSchedulingForASpecificDay', function (req, res) {
   	dbExchange.getTable(tools.requestType.SCHEDULE + tools.requestType.FILM,day_week,res);
 });
 
-/*Completed*/
 app.get('/getTheSchedulingForASpecificRoom', function (req, res) {
 	var query            	= require('url').parse(req.url,true).query;
 	var room_num		 	= query.room_num;
@@ -236,7 +245,6 @@ app.get('/getTheSchedulingForASpecificRoom', function (req, res) {
 *								  QRCodeGeneration  								 *
 *************************************************************************************/	
 
-/*Completed*/
 app.get('/getQRCode', function (req, res) {
 	var query            	= require('url').parse(req.url,true).query;
 	var room_num		 	= query.room_num;
@@ -256,6 +264,8 @@ app.get('/getQRCode', function (req, res) {
 /*************************************************************************************
 *								   FilmScheduling   								 *
 *************************************************************************************/	
+
+/*To be continued*/
 var currentWeekDay = 1;
 app.post('/', function (req, res) {
 	var urlSyncNode = "http://127.0.0.1:5000/";

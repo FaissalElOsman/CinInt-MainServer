@@ -156,12 +156,44 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(sucess, 1)
 
     def test_get_the_scheduling_for_a_specific_day(self):
-        sucess=1
-        
+        sucess = 1
+        day = 3
+        is_found = False
+
+        res = unirest.get(SERVER_URL+'getTheSchedulingForASpecificDay', headers={"Accept": "application/json"},params={"day": day})
+        tmp_res = json.loads(res.raw_body)
+
+        for scheduling in data_in_json_format['scheduling']:
+            if(scheduling['day_week'] == day):
+                for s in tmp_res['data']:
+                    if(s['name'] == scheduling['film_name']):
+                        is_found = True
+
+                if(is_found == False):
+                    print(scheduling['film_name'])
+                    sucess = sucess & False
+
+                is_found = False
         self.assertEqual(sucess, 1)
 
     def test_get_the_scheduling_for_a_specific_room(self):
-        sucess=1
+        sucess = 1
+        room_num = 2
+        is_found = False
+
+        res = unirest.get(SERVER_URL+'getTheSchedulingForASpecificRoom', headers={"Accept": "application/json"},params={"room_num": room_num})
+        tmp_res = json.loads(res.raw_body)
+
+        for scheduling in data_in_json_format['scheduling']:
+            if(scheduling['room_num'] == room_num):
+                for s in tmp_res['data']:
+                    if(s['name'] == scheduling['film_name']):
+                        is_found = True
+
+                if(is_found == False):
+                    sucess = sucess & False
+
+                is_found = False
         self.assertEqual(sucess, 1)
 
     def test_remove_film_normal(self):
@@ -199,7 +231,10 @@ class TestStringMethods(unittest.TestCase):
 
     def test_remove_film_does_not_exist(self):
         sucess=1
-        self.assertEqual(sucess, 1)
+        film_name = "FURRY"
+        res=unirest.get(SERVER_URL+'removeFilm', headers={}, params={"name": film_name})
+        tmp_res = json.loads(res.raw_body)
+        self.assertEqual((tmp_res['success']==False), 1)
 
     def test_remove_room_normal(self):
         sucess=1
@@ -236,21 +271,21 @@ class TestStringMethods(unittest.TestCase):
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()
-    suite.addTest(TestStringMethods('test_add_film_normal')) #Completed
-    suite.addTest(TestStringMethods('test_add_film_already_added')) #Completed
-    suite.addTest(TestStringMethods('test_add_room_normal')) #Completed
-    suite.addTest(TestStringMethods('test_add_room_already_added')) #Completed
-    suite.addTest(TestStringMethods('test_add_scheduling_normal')) #Completed
-    suite.addTest(TestStringMethods('test_add_scheduling_film_not_found')) #Completed
-    suite.addTest(TestStringMethods('test_add_scheduling_room_not_found')) #Completed
-    suite.addTest(TestStringMethods('test_get_films')) #Completed
-    suite.addTest(TestStringMethods('test_get_rooms')) #Completed
+    suite.addTest(TestStringMethods('test_add_film_normal'))
+    suite.addTest(TestStringMethods('test_add_film_already_added'))
+    suite.addTest(TestStringMethods('test_add_room_normal'))
+    suite.addTest(TestStringMethods('test_add_room_already_added'))
+    suite.addTest(TestStringMethods('test_add_scheduling_normal'))
+    suite.addTest(TestStringMethods('test_add_scheduling_film_not_found'))
+    suite.addTest(TestStringMethods('test_add_scheduling_room_not_found'))
+    suite.addTest(TestStringMethods('test_get_films'))
+    suite.addTest(TestStringMethods('test_get_rooms'))
     suite.addTest(TestStringMethods('test_get_the_scheduling_for_a_specific_day'))
     suite.addTest(TestStringMethods('test_get_the_scheduling_for_a_specific_room'))
-    suite.addTest(TestStringMethods('test_remove_film_normal')) #Completed
-    suite.addTest(TestStringMethods('test_remove_film_does_not_exist'))
-    suite.addTest(TestStringMethods('test_remove_room_normal')) #Completed
-    suite.addTest(TestStringMethods('test_remove_room_does_not_exist')) #Completed
-    suite.addTest(TestStringMethods('test_remove_scheduling'))
-    suite.addTest(TestStringMethods('test_get_qr_code')) #Completed
+    #suite.addTest(TestStringMethods('test_remove_film_normal')) 
+    #suite.addTest(TestStringMethods('test_remove_film_does_not_exist'))
+    #suite.addTest(TestStringMethods('test_remove_room_normal'))
+    #suite.addTest(TestStringMethods('test_remove_room_does_not_exist'))
+    #suite.addTest(TestStringMethods('test_remove_scheduling'))
+    #suite.addTest(TestStringMethods('test_get_qr_code'))
     unittest.TextTestRunner(verbosity=2).run(suite)
