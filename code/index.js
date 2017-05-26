@@ -400,4 +400,4 @@ app.get('/getQRCode', function (req, res) {
 /*************************************************************************************
 *								  DashboardReendering   							 *
 *************************************************************************************/
-app.use(express.static(path.join(__dirname, '../../CinInt-AdminWeb/')));
+app.use(express.static(path.join(__dirname, '../../CinInt-AdminWeb/src/')));
