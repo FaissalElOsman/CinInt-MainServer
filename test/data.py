@@ -119,6 +119,10 @@ data={
         {
             "room_num"              : 5                           ,
             "ip_addr"               : "134.32.56.124"
+        },
+        {
+            "room_num"              : 6                           ,
+            "ip_addr"               : "127.0.0.1"
         }
     ],
     "scheduling": 

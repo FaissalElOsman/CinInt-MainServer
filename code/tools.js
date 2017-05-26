@@ -1,8 +1,12 @@
+"use strict";
 var util  								= require('util');
 var dataBaseLink 						= 'postgres://localhost:5432/CinInt';
 var requestType 						= {FILM:1, ROOM:2, SCHEDULE:3};
 var daysOfTheWeek 						= ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 var minimalDelayBetweenFilms		 	= { "hour"		: 0	, "minute"	: 15};
+
+var schedulerTable    					= [];
+var delayBetweenLoadingAndLaunchingMin 	= 10;
 
 function isAValidTime(time) {
 	if((time.hour<24)&&(time.hour>-1)&&(time.minute>-1)&&(time.minute<60))
@@ -103,7 +107,7 @@ function toBuffer(file){
 	for(var i = 0;i < buffer.length; ++i)
 		buffer[i] = view[i];
 	return buffer;
-}	
+}
 
 module.exports={
 	util,
@@ -116,5 +120,7 @@ module.exports={
 	daysOfTheWeek,
 	sortTimeTable,
 	minimalDelayBetweenFilms,
-	toBuffer
+	toBuffer,
+	schedulerTable,
+	delayBetweenLoadingAndLaunchingMin
 };

@@ -1,14 +1,75 @@
 import unittest
 import json
 import unirest
+import datetime
 import filecmp
+import socket
 import os
+import threading
+from http_parser.parser import HttpParser
+
 from data import data
 
 SERVER_URL="http://127.0.0.1:5100/"
 
 data_dumped			= json.dumps(data) 
 data_in_json_format = json.loads(data_dumped)
+
+class SyncNodeServerSimulator:
+    def __init__(self,isReceivedRequestMatchExpectation):
+        self.isReceivedRequestMatchExpectation = isReceivedRequestMatchExpectation
+
+    def handler(self):
+        httpParser1 = HttpParser()
+        httpParser2 = HttpParser()
+        serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        serverSocket.bind(('', 5000))
+        serverSocket.listen(1)
+        conn, addr = serverSocket.accept()
+        cumulatedPacketLength = 0
+        while 1:
+            data = conn.recv(1024)
+            receivedPacketLength = len(data)
+            httpParser1.execute(data, receivedPacketLength)
+            print httpParser1.get_method()
+            cumulatedPacketLength += receivedPacketLength
+            if cumulatedPacketLength > 235:
+                self.isReceivedRequestMatchExpectation = True
+                response_body_raw = '{"success":true,"data":"FILE_FOUND_AND_LOADED"}'
+                conn.send('%s %s %s\r\n%s: %s\r\n%s: %s\r\n\r\n%s' % (  'HTTP/1.1', '200', 'OK',\
+                                                                        'Content-Type','application/json; charset=utf-8',\
+                                                                        'Content-Length',len(response_body_raw),\
+                                                                        response_body_raw))
+                conn.close()
+            break
+
+        serverSocket.listen(1)
+        conn, addr = serverSocket.accept()
+        cumulatedPacketLength = 0
+        while 1:
+            data = conn.recv(1024)
+            receivedPacketLength = len(data)
+            httpParser2.execute(data, receivedPacketLength)
+            print httpParser2.get_method()
+            cumulatedPacketLength += receivedPacketLength
+            if cumulatedPacketLength > 235:
+                self.isReceivedRequestMatchExpectation = True
+                response_body_raw = '{"success":true,"data":"FILE_FOUND_AND_LOADED"}'
+                conn.send('%s %s %s\r\n%s: %s\r\n%s: %s\r\n\r\n%s' % (  'HTTP/1.1', '200', 'OK',\
+                                                                        'Content-Type','application/json; charset=utf-8',\
+                                                                        'Content-Length',len(response_body_raw),\
+                                                                        response_body_raw))
+                conn.close()
+                serverSocket.close()
+            break
+
+    def start(self):
+        self.sNSS = threading.Thread(name='syncNodeServerSimulator1', target=self.handler, args=())
+        self.sNSS.start()
+    
+    def join(self):
+        self.sNSS.join()
 
 class TestStringMethods(unittest.TestCase):
 
@@ -269,6 +330,17 @@ class TestStringMethods(unittest.TestCase):
         os.remove("tmpQRcodeOfRoom2")
         self.assertEqual(res, True)
 
+    def test_scheduler(self):
+        sucess=1
+        unirest.get('http://127.0.0.1:5100/'+'activateTestMode', headers={"Accept": "application/json"},params={})
+        syncNodeServerSimulator = SyncNodeServerSimulator(False)
+        syncNodeServerSimulator.start()
+        now = datetime.datetime.now()
+        after10SecFromNow = now + datetime.timedelta(0,10)
+        res = unirest.get(SERVER_URL+'scheduleElement', headers={"Accept": "application/json"},params={"filmName": "Dans le trame","roomNum":6,"day":5,"hour":after10SecFromNow.hour,"minute":after10SecFromNow.minute,"second":after10SecFromNow.second})
+        syncNodeServerSimulator.join()
+        self.assertEqual(syncNodeServerSimulator.isReceivedRequestMatchExpectation, True)
+
 if __name__ == '__main__':
     suite = unittest.TestSuite()
     suite.addTest(TestStringMethods('test_add_film_normal'))
@@ -282,10 +354,11 @@ if __name__ == '__main__':
     suite.addTest(TestStringMethods('test_get_rooms'))
     suite.addTest(TestStringMethods('test_get_the_scheduling_for_a_specific_day'))
     suite.addTest(TestStringMethods('test_get_the_scheduling_for_a_specific_room'))
-    #suite.addTest(TestStringMethods('test_remove_film_normal')) 
-    #suite.addTest(TestStringMethods('test_remove_film_does_not_exist'))
-    #suite.addTest(TestStringMethods('test_remove_room_normal'))
-    #suite.addTest(TestStringMethods('test_remove_room_does_not_exist'))
-    #suite.addTest(TestStringMethods('test_remove_scheduling'))
-    #suite.addTest(TestStringMethods('test_get_qr_code'))
+    suite.addTest(TestStringMethods('test_remove_film_normal')) 
+    suite.addTest(TestStringMethods('test_remove_film_does_not_exist'))
+    suite.addTest(TestStringMethods('test_remove_room_normal'))
+    suite.addTest(TestStringMethods('test_remove_room_does_not_exist'))
+    suite.addTest(TestStringMethods('test_remove_scheduling'))
+    suite.addTest(TestStringMethods('test_get_qr_code'))
+    suite.addTest(TestStringMethods('test_scheduler'))
     unittest.TextTestRunner(verbosity=2).run(suite)

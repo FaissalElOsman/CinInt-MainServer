@@ -1,3 +1,5 @@
+"use strict";
+
 var express     	= require('express');
 var bodyParser  	= require('body-parser');
 var pg          	= require('pg');
@@ -6,8 +8,14 @@ var formidable 		= require('formidable');
 var fs 				= require('fs');
 var path 			= require('path');
 var request 		= require('request');
+var schedule 		= require('node-schedule');
+var schedulecron 	= require('node-cron');
+var unirest 		= require('unirest');
+
 var dbExchange		= require('./dbExchange.js');
 var tools 			= require('./tools.js');
+
+var isTestMode 		= false;
 
 var app = express();
 app.set('port', (process.env.PORT || 5100));
@@ -15,6 +23,128 @@ app.use(bodyParser.json());
 
 app.listen(app.get('port'), function() {
 	tools.util.log('LOG INFO - index.js : Node app is running on port ' + app.get('port'));
+});
+
+/*************************************************************************************
+*								   FilmScheduling   								 *
+*************************************************************************************/	
+
+class SchedulingElement {
+	constructor(filmName, roomNum, time, handler) {
+		var parameter 	= { 	"room_num"				: roomNum				,
+								"room_id"				: 0						,
+								"object"				: this 					};
+
+		this.filmName 				= JSON.parse(JSON.stringify(filmName));
+		this.roomNum 				= JSON.parse(JSON.stringify(roomNum));
+		this.time 					= JSON.parse(JSON.stringify(time));
+
+		dbExchange.getIpAdress(parameter,function(IpAddress,object){
+			object.IpAddress 		= IpAddress;
+			var rule = object.time.second + ' '+ object.time.minute + ' ' + object.time.hour + ' * * '+object.time.day;
+			console.log(rule);
+			object.scheduling   	= schedulecron.schedule(rule, handler.bind(null,object));
+		});
+  	}
+  	delete(){
+  		this.scheduling.cancel();
+  	}
+}
+
+var handlerLoadFile = function(context){
+	console.log("handlerLoadFile ::filmName = "+context.filmName+" roomNum = "+context.roomNum);
+  	unirest.post('http://' + context.IpAddress + ':5000/loadFile')
+  		.headers({"Accept": "application/json"})
+  		.send({"parameter":'{"command": "LOAD_FILE testAudioFile.pcm"',"file":  "lol"})
+  		.end();
+}
+
+var handlerLaunchSynchronisation = function(context){
+	console.log("handlerLaunchSynchronisation ::filmName = "+context.filmName+" roomNum = "+context.roomNum);
+	unirest.get('http://' + context.IpAddress + ':5000/loadFile')
+  		.headers({"Accept": "application/json"})
+  		.end();
+}
+
+var addElementToSchedulerTable = function(schedulerTable,filmName,roomNum,time){
+	var schedulerTableLength  		= schedulerTable.length ;
+	var schedulingElementLoadFile 	= new SchedulingElement(filmName,roomNum,time,handlerLoadFile);
+	var date 						= new Date(0,0,0,time.hour, time.minute, time.second);
+
+	schedulerTable.push(schedulingElementLoadFile);
+	if(isTestMode)
+		var newDate 				= new Date(date.getTime() + (1000 * tools.delayBetweenLoadingAndLaunchingMin))
+	else
+		var newDate					= new Date(date.getTime() + (60 * 1000 * tools.delayBetweenLoadingAndLaunchingMin))
+
+	time.hour 						= newDate.getHours();
+	time.minute 					= newDate.getMinutes();
+	time.second 					= newDate.getSeconds();
+	var schedulingElementLaunchSync = new SchedulingElement(filmName,roomNum,time,handlerLaunchSynchronisation);
+	schedulerTable.push(schedulingElementLaunchSync);
+	return true;
+}
+
+var removeElementFromSchedulerTable = function(schedulerTable,filmName,roomNum,time){
+	var schedulerTableLength  = schedulerTable.length ;
+	for (var i = 0; i < schedulerTableLength; i++){
+		if(	(schedulerTable[i].roomNum 		== roomNum) 	&& (schedulerTable[i].filmName 		== filmName) 	&&
+			(schedulerTable[i].time.day 	== time.day) 	&& (schedulerTable[i].time.hour 	== time.hour) 	&&
+			(schedulerTable[i].time.minute 	== time.minute) && (schedulerTable[i].time.second 	== time.second)){
+				schedulerTable[i].destroy();
+				schedulerTable[i+1].destroy();
+				return true;
+		}
+	}
+	return false;
+}
+
+/*For integration tests*/
+app.get('/activateTestMode', function (req, res) {
+	isTestMode = true;
+	res.status(200).json({"success": true});
+});
+
+app.get('/getTime', function (req, res) {
+	var date = new Date();
+	var parameter      		=  { 	"day"				: date.getDay()			,
+									"hour"				: date.getHours()		,
+									"minute"			: date.getMinutes()		,
+									"second"			: date.getSeconds()		};
+	res.status(200).json({"data": parameter});
+});
+
+app.get('/scheduleElement', function (req, res) {
+	var query           = require('url').parse(req.url,true).query;
+	var filmName		= query.filmName;
+	var roomNum 		= query.roomNum;
+	var day 			= query.day;
+	var hour 			= query.hour;
+	var minute 			= query.minute;
+	var second 			= query.second;
+
+	var time      		=  { 	"day"				: day 		,
+								"hour"				: hour		,
+								"minute"			: minute	,
+								"second"			: second	};
+
+	addElementToSchedulerTable(tools.schedulerTable,filmName,roomNum,time);
+	res.status(200).json({"success": true});
+});
+
+/*To be continued*/
+var currentWeekDay = 1;
+app.post('/', function (req, res) {
+	var urlSyncNode = "http://127.0.0.1:5000/";
+	var reqToSyncNode = request.post(urlSyncNode, function(err,resp,body){
+		if(err)
+			console.log('Error!');
+		else
+			console.log('URL: ' + body);
+	});
+	var form = reqToSyncNode.form();
+	form.append('file', tools.toBuffer())
+	res.status(200).json({"success": true});
 });
 
 /*************************************************************************************
@@ -34,7 +164,7 @@ app.post('/addFilm', function (req, res) {
 	var parameter;
 	
 	form.on('field', function(name, field) {
-		field_in_json_format 	= JSON.parse(field);
+		var field_in_json_format= JSON.parse(field);
 		var name          		= field_in_json_format.name;
 		var duration_hour 		= field_in_json_format.duration_hour;
 		var duration_minute 	= field_in_json_format.duration_minute;
@@ -130,6 +260,11 @@ app.post('/addScheduling', function (req, res) {
 
   				if(tools.canTimeXFitInDataTable(tmp_data,tools.minimalDelayBetweenFilms,tmp_schedule_tab)){
   					dbExchange.insert(tools.requestType.SCHEDULE,parameter,res);
+  					var time      				=  { 	"day"				: parameter.day_week 	,
+														"hour"				: parameter.time_hour	,
+														"minute"			: parameter.time_minute	,
+														"second"			: 0						};
+  					addElementToSchedulerTable(tools.schedulerTable,parameter.film_name,parameter.room_num,time);
   				}
   			});
   		});
@@ -214,6 +349,7 @@ app.get('/getRooms', function (req, res) {
   	dbExchange.getTable(tools.requestType.ROOM,0,res);
 });
 
+
 app.get('/getScheduling', function (req, res) {
 	tools.util.log('LOG INFO - index.js : Receiving getTheScheduling request');
 
@@ -253,7 +389,7 @@ app.get('/getQRCode', function (req, res) {
 								    "room_id"				: 0						};
 	tools.util.log('LOG INFO - index.js : Receiving getQRCode request for the room number '+room_num);
 	dbExchange.getId(tools.requestType.ROOM,parameter,res,function(parameter){
-  		dbExchange.getIpAdress(room_num,function(IpAddress){
+  		dbExchange.getIpAdress(parameter,function(IpAddress,object){
   			res.set('Content-Type', 'image/png');
 			var qr_svg = qr.image(IpAddress, { type: 'png' });
 			qr_svg.pipe(res);
@@ -261,24 +397,6 @@ app.get('/getQRCode', function (req, res) {
   	});
 });
 
-/*************************************************************************************
-*								   FilmScheduling   								 *
-*************************************************************************************/	
-
-/*To be continued*/
-var currentWeekDay = 1;
-app.post('/', function (req, res) {
-	var urlSyncNode = "http://127.0.0.1:5000/";
-	var reqToSyncNode = request.post(urlSyncNode, function(err,resp,body){
-		if(err)
-			console.log('Error!');
-		else
-			console.log('URL: ' + body);
-	});
-	var form = reqToSyncNode.form();
-	form.append('file', tools.toBuffer())
-	res.status(200).json({"success": true});
-});
 /*************************************************************************************
 *								  DashboardReendering   							 *
 *************************************************************************************/

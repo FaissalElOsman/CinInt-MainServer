@@ -376,14 +376,14 @@ function getTableScheduleForASpecificRoomAndDay(parameter,res,callback) {
 
 function getIpAdress(parameter,callback){
 	pg.connect(connectionString, function(err, client, done) {
-		client.query(`select ip_addr from room where room_num=$1`,[parameter], function(err, result) {
+		client.query(`select ip_addr from room where room_num=$1`,[parameter.room_num], function(err, result) {
 			done();
 			if (err) {
-				tools.util.log('LOG EROR - dbExchange.js : There is an error when fetching the IP address of the room number '+parameter);
+				tools.util.log('LOG EROR - dbExchange.js : There is an error when fetching the IP address of the room number '+parameter.room_num);
 				res.status(500).json({"success": false});
 			} else{
-				tools.util.log('LOG INFO - dbExchange.js : The IP address of the room number '+parameter+' is '+result.rows[0].ip_addr);
-					callback(result.rows[0].ip_addr);
+				tools.util.log('LOG INFO - dbExchange.js : The IP address of the room number '+parameter.room_num+' is '+result.rows[0].ip_addr);
+					callback(result.rows[0].ip_addr,parameter.object);
 			}
 		});
 	});
