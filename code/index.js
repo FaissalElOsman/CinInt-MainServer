@@ -42,7 +42,6 @@ class SchedulingElement {
 		dbExchange.getIpAdress(parameter,function(IpAddress,object){
 			object.IpAddress 		= IpAddress;
 			var rule = object.time.second + ' '+ object.time.minute + ' ' + object.time.hour + ' * * '+object.time.day;
-			console.log(rule);
 			object.scheduling   	= schedulecron.schedule(rule, handler.bind(null,object));
 		});
   	}
@@ -68,14 +67,18 @@ var handlerLaunchSynchronisation = function(context){
 
 var addElementToSchedulerTable = function(schedulerTable,filmName,roomNum,time){
 	var schedulerTableLength  		= schedulerTable.length ;
+	if(isTestMode){
+		var tmpDate 				= new Date();
+		time.day 					= tmpDate.getDay();
+	}
 	var schedulingElementLoadFile 	= new SchedulingElement(filmName,roomNum,time,handlerLoadFile);
 	var date 						= new Date(0,0,0,time.hour, time.minute, time.second);
 
 	schedulerTable.push(schedulingElementLoadFile);
 	if(isTestMode)
-		var newDate 				= new Date(date.getTime() + (1000 * tools.delayBetweenLoadingAndLaunchingMin))
+		var newDate 				= new Date(date.getTime() + (1000 * tools.delayBetweenLoadingAndLaunchingMin));
 	else
-		var newDate					= new Date(date.getTime() + (60 * 1000 * tools.delayBetweenLoadingAndLaunchingMin))
+		var newDate					= new Date(date.getTime() + (60 * 1000 * tools.delayBetweenLoadingAndLaunchingMin));
 
 	time.hour 						= newDate.getHours();
 	time.minute 					= newDate.getMinutes();
@@ -184,7 +187,7 @@ app.post('/addFilm', function (req, res) {
 		dbExchange.doesThisElementExist(tools.requestType.FILM,parameter,res, function(parameter){
 			dbExchange.insert(tools.requestType.FILM,parameter,res);
 		});		
-    });
+   	});
 
 	form.on('file', function(field, file) {
 		fs.rename(file.path, path.join(form.uploadDir, file.name.split("/")[1]));
